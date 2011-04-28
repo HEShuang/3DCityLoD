@@ -44,7 +44,7 @@ public:
 	osg::ref_ptr<osg::Group> getModel(LOD);
 	osg::ref_ptr<osg::Group> getFootprint(LOD);
 
-	int countFootprintPolygons(LOD);
+	void statistics();
 
 private:
 	void init();

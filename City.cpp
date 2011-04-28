@@ -162,6 +162,70 @@ osg::ref_ptr<osg::Group> City::getFootprint(LOD lod)
 
 	return group;
 }
+
+
+void City::statistics()
+{
+   //counting vertices
+	int n20 = 0,n15 = 0, n10 = 0,n05 = 0;
+	int n20_3d = 0,n15_3d = 0, n10_3d = 0,n05_3d =0;
+
+	for(int i=0;i<_allBldgs.size();i++)
+	{
+		n20_3d += _allBldgs[i].getNumVertices(Lod20);
+		n15_3d += _allBldgs[i].getNumVertices(Lod15);
+		n10_3d += _allBldgs[i].getNumVertices(Lod10);
+
+		for(int j=0;j<_allBldgs[i]._footprints_lod20.size();j++)
+		{
+			n20 += _allBldgs[i]._footprints_lod20[j]._polygon->getExteriorRing()->getNumPoints();
+		}
+
+		for(int j=0;j<_allBldgs[i]._footprints_lod15.size();j++)
+		{
+			n15 += _allBldgs[i]._footprints_lod15[j]._polygon->getExteriorRing()->getNumPoints();
+			
+			if(int n=_allBldgs[i]._footprints_lod15[j]._polygon->getNumInteriorRings())
+				for(int k=0;k<n;k++)
+					n15 += _allBldgs[i]._footprints_lod15[j]._polygon->getInteriorRing(k)->getNumPoints();
+
+		}
+		for(int j=0;j<_allBldgs[i]._footprints_lod10.size();j++)
+		{
+			n10 += _allBldgs[i]._footprints_lod10[j]._polygon->getExteriorRing()->getNumPoints();
+		}
+	}
+
+	n05 = n10;
+	n05_3d = n10_3d;
+
+	for (int i=0;i<_allBldgGroups.size();i++)
+	{
+		n05_3d + _allBldgGroups[i].getNumVertices();
+		
+		for( int j=0;j<_allBldgGroups[i]._footprints.size();j++)
+		{
+			n05 += _allBldgGroups[i]._footprints[j]._polygon->getExteriorRing()->getNumPoints();
+		}
+
+		for( int j=0; j<_allBldgGroups[i]._idBldgs.size();j++)
+		{
+			int id = _allBldgGroups[i]._idBldgs[j];
+			
+			n05_3d -= _allBldgs[id].getNumVertices(Lod10);
+			for(int k=0;k<_allBldgs[id]._footprints_lod10.size();k++)
+				n05 -= _allBldgs[id]._footprints_lod10[k]._polygon->getExteriorRing()->getNumPoints();
+		}
+	}
+	std::cout<<"footprint vertices lod20: "<<n20<<std::endl;
+	std::cout<<"footprint vertices lod15: "<<n15<<std::endl;
+	std::cout<<"footprint vertices lod10: "<<n10<<std::endl;
+	std::cout<<"footprint vertices lod05: "<<n05<<std::endl;
+
+	std::cout<<"3d model vertices lod20: "<<n20_3d<<std::endl;
+	std::cout<<"3d model vertices lod15: "<<n15_3d<<std::endl;
+	std::cout<<"3d model vertices lod10: "<<n10_3d<<std::endl;
+	std::cout<<"3d model vertices lod05: "<<n05_3d<<std::endl;}			
 /////////////////////////////////////////////////////////////////////////////////////////// 
 //                                    init()	                                        
 ///////////////////////////////////////////////////////////////////////////////////////////

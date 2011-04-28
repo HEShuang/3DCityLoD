@@ -8,6 +8,8 @@
 #include <ogr_geometry.h>
 #include <ogrsf_frmts.h>
 
+#include <string>
+#include <vector>
 #include <math.h>
 #include <queue> 
 #include <map>
@@ -40,8 +42,9 @@
 #define WHITE osg::Vec4f(1.0f,1.0f,1.0f,0.94f)
 #define BLACK osg::Vec4f(0.0f,0.0f,0.0f,1.0f)
 #define RED osg::Vec4f(1.0f,0.0f,0.0f,1.0f)
+#define ORANGE osg::Vec4f(1.0f,0.14f,0.0f,1.0f)
 #define GREEN osg::Vec4f(0.0f,1.0f,0.0f,1.0f)
-#define YELLOW osg::Vec4f(1.0f,1.0f,0.0f,1.0f)
+#define YELLOW osg::Vec4f(1.0f,1.0f,0.0f,0.5f)
 #define KHAKI osg::Vec4f(1.0f,0.96f,0.0f,0.56f)
 
 

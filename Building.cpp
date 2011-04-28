@@ -61,20 +61,23 @@ osg::ref_ptr<osg::Group> Building::getModel(LOD lod)
 	switch(lod)
 	{
 	case Lod10:
-		group->addChild(osg_assemble(_walls_lod10,false));
-		group->addChild(osg_assemble(_roofs_lod10,true,RED));
+		group->addChild(osg_assemble(_walls_lod10,osg::PrimitiveSet::POLYGON,false,GRAY2));
+		group->addChild(osg_assemble(_roofs_lod10,osg::PrimitiveSet::POLYGON,true,GRAY1));
+	//	group->addChild(osg_assemble(_roofs_lod10,osg::PrimitiveSet::LINE_STRIP,false,RED));
 		break;
 
 	case Lod15:
-		group->addChild(osg_assemble(_walls_lod15,false));
-		group->addChild(osg_assemble(_roofs_lod15,true,RED));
+		group->addChild(osg_assemble(_walls_lod15,osg::PrimitiveSet::POLYGON,false,GRAY2));
+		group->addChild(osg_assemble(_roofs_lod15,osg::PrimitiveSet::POLYGON,true,GRAY1));
+	//	group->addChild(osg_assemble(_roofs_lod15,osg::PrimitiveSet::LINE_STRIP,false,RED));
 		break;
 
 	case Lod20:
 		for(int i = 0;i<_parts.size();i++)
 		{	
-			group->addChild(osg_assemble(_parts[i].getWalls(),false));
-			group->addChild(osg_assemble(_parts[i].getRoofs(),true,RED));
+			group->addChild(osg_assemble(_parts[i].getWalls(),osg::PrimitiveSet::POLYGON,false,GRAY2));
+			group->addChild(osg_assemble(_parts[i].getRoofs(),osg::PrimitiveSet::POLYGON,true,GRAY1));
+		  //  group->addChild(osg_assemble(_parts[i].getRoofs(),osg::PrimitiveSet::LINE_STRIP,false,RED));
 		}
 		break;
 	}
@@ -94,6 +97,7 @@ osg::ref_ptr<osg::Geode> Building::getFootprint(LOD lod)
 		return osg_assemble(_footprints_lod20);
 	}
 }
+
 
 
 bool Building::isAdjacent(Building *other)
@@ -119,7 +123,7 @@ void Building::merge(std::vector<Footprint> &input, std::vector<Footprint> &outp
 		
 		for(int j=0;j< temp1.size();j++)
 		{	
-			if(fp1.isAdjacent(&temp1[j]))
+			if(fp2.isAdjacent(&temp1[j]))
 			{
 				fp1 = fp2;
 				fp1.merge(&temp1[j],fp2,Average);
@@ -135,7 +139,52 @@ void Building::merge(std::vector<Footprint> &input, std::vector<Footprint> &outp
 	output.assign(temp2.begin(),temp2.end());
 }
 
+
+int Building::getNumVertices(LOD lod)
+{
+	int verts = 0;
+	switch(lod)
+	{
+	case Lod10:
+		verts += num_vertices(_roofs_lod10);
+		verts += num_vertices(_walls_lod10);
+		return verts;
+
+	case Lod15:
+		verts += num_vertices(_roofs_lod15);
+		verts += num_vertices(_walls_lod15);
+		return verts;
+
+	case Lod20:
+		for(int i = 0;i<_parts.size();i++)
+		{
+			verts += num_vertices(_parts[i].getRoofs());
+			verts += num_vertices(_parts[i].getWalls());
+		}
+		return verts;
+	}
+	return verts;
+}
+
+
+ /////////////////////////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////////////////////////
+
 // private functions
+
+int Building::num_vertices(OGRMultiPolygon* polygons)
+{
+	int verts = 0;
+	for(int i=0;i<polygons->getNumGeometries();i++)
+	{
+		verts += ((OGRPolygon*)(polygons->getGeometryRef(i)))->getExteriorRing()->getNumPoints() -1;
+		
+		if(	int n = ((OGRPolygon*)(polygons->getGeometryRef(i)))->getNumInteriorRings())
+			for(int j=0;j<n;j++)
+				verts += ((OGRPolygon*)(polygons->getGeometryRef(i)))->getInteriorRing(j)->getNumPoints()-1;
+	}
+	return verts;
+}
 
 typedef struct _FootprintNode{	// for building adjacency table
 	Footprint* pFt;
@@ -336,7 +385,12 @@ void Building::generalization_2d_lod10()
 			}
 		}while(flag);
 	}
-
+	for(int i=0;i<_footprints_lod10.size();i++)
+	{
+		if(int m=_footprints_lod10[i]._polygon->getNumInteriorRings())
+			for(int j=0;j<m;j++)
+				(_footprints_lod10[i]._polygon->getInteriorRing(j))->empty();
+	}
 	
 	////simplify polygons by merging fragment edges
 	//for(int i=0;i<_footprints_lod10.size();i++)
@@ -495,7 +549,7 @@ bool Building::extrusion_lod10()
 
 
 
-osg::ref_ptr<osg::Geode> Building::osg_assemble(OGRMultiPolygon* polygons,bool doTesselate,osg::Vec4 color)
+osg::ref_ptr<osg::Geode> Building::osg_assemble(OGRMultiPolygon* polygons,osg::PrimitiveSet::Mode mode,bool doTesselate,osg::Vec4 color)
 {
 	if(!polygons)
 		return 0;
@@ -526,7 +580,7 @@ osg::ref_ptr<osg::Geode> Building::osg_assemble(OGRMultiPolygon* polygons,bool d
 			geom->setColorArray(colors);
 			geom->setColorBinding(osg::Geometry::BIND_OVERALL);
 	    
-			geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POLYGON,0,m));
+			geom->addPrimitiveSet(new osg::DrawArrays(mode,0,m));
 			geode->addDrawable(geom);
 		}  
 	}
@@ -581,7 +635,7 @@ osg::ref_ptr<osg::Geode> Building::osg_assemble(OGRMultiPolygon* polygons,bool d
 				verts->push_back(osg::Vec3(pt.getX(),pt.getY(),pt.getZ()));
 			}
 			int n_start = 0;
-			geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POLYGON,n_start,n_pts));
+			geom->addPrimitiveSet(new osg::DrawArrays(mode,n_start,n_pts));
 			n_start += n_pts;
 
 			if(int n_rings_inter = ((OGRPolygon*)polygons->getGeometryRef(i))->getNumInteriorRings())

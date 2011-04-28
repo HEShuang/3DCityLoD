@@ -16,7 +16,7 @@ BuildingGroup::~BuildingGroup(void)
 osg::ref_ptr<osg::Group> BuildingGroup::getModel()
 {
    osg::ref_ptr<osg::Group> group = new osg::Group();
-   group->addChild(osg_assemble(_walls,false));
+   group->addChild(osg_assemble(_walls,false,GRAY2));
    group->addChild(osg_assemble(_roofs,true,RED));
    return group;
 }
@@ -24,6 +24,29 @@ osg::ref_ptr<osg::Group> BuildingGroup::getModel()
 osg::ref_ptr<osg::Geode> BuildingGroup::getFootprint()
 {
    return osg_assemble(_footprints);
+}
+
+int BuildingGroup::getNumVertices()
+{
+	int verts = 0;
+	for(int i=0;i<_roofs->getNumGeometries();i++)
+	{
+		verts += ((OGRPolygon*)(_roofs->getGeometryRef(i)))->getExteriorRing()->getNumPoints() -1;
+		
+		if(	int n = ((OGRPolygon*)(_roofs->getGeometryRef(i)))->getNumInteriorRings())
+			for(int j=0;j<n;j++)
+				verts += ((OGRPolygon*)(_roofs->getGeometryRef(i)))->getInteriorRing(j)->getNumPoints()-1;
+	}
+	
+	for(int i=0;i<_walls->getNumGeometries();i++)
+	{
+		verts += ((OGRPolygon*)(_walls->getGeometryRef(i)))->getExteriorRing()->getNumPoints() -1;
+		
+		if(	int n = ((OGRPolygon*)(_walls->getGeometryRef(i)))->getNumInteriorRings())
+			for(int j=0;j<n;j++)
+				verts += ((OGRPolygon*)(_walls->getGeometryRef(i)))->getInteriorRing(j)->getNumPoints()-1;
+	}
+	return verts;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -43,6 +66,10 @@ void BuildingGroup::grouping(std::vector<Building*>& bldgs)
 		bldgs[i]->merge(fps1,fps2);	
 		_idBldgs.push_back(bldgs[i]->_index);
 	}
+	for(int i=0;i<fps2.size();i++)
+		if(int n=fps2[i]._polygon->getNumInteriorRings())
+			for(int j=0;j<n;j++)
+				(fps2[i]._polygon->getInteriorRing(j))->empty();
 
 	_footprints.assign(fps2.begin(),fps2.end());
 }	
